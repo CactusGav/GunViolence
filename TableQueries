@@ -1,0 +1,21 @@
+--Tableau Queries 
+--1. Totals Per State
+SELECT SUM(__Killed + __Injured) as Total_Affected_By_Violence, State
+FROM`cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY State
+
+--2.Totals Over Time 
+SELECT Incident_Date_Fixed, SUM(__Killed + __Injured) as Total_Affected_Per_Day
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY Incident_Date_Fixed
+Order By Incident_Date_Fixed
+
+--3. Total of Killed vs Total of Injured
+SELECT Sum(__Killed) as Total_Killed, SUM(__Injured) as Total_Injured
+From `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+
+--4 Total Killed by DOW
+SELECT SUM(__Killed+ __Injured) as Total_Affected_By_Violence, dow_
+FROM `cellular-smoke-361220.gun_violence.dow_gun_violence`
+GROUP BY dow_
+Order BY Total_Affected_By_Violence DESC
