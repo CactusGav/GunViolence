@@ -1,0 +1,222 @@
+-- Joining all the tables with UNION ALL.
+
+SELECT*
+From `cellular-smoke-361220.gun_violence.gun_violence_2014`
+UNION ALL
+SELECT*
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2015`
+UNION ALL
+SELECT*
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2016`
+UNION ALL
+SELECT*
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2017`
+UNION ALL
+SELECT* 
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2018`
+UNION ALL
+SELECT*
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2019`
+
+--Selecting information needed from unioned tables. Ommiting Incident_ID and Operations columns as Incident_ID holds no relevancy to analysis, and Operations is N/A for all entries in all 6 tables. 
+
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+From `cellular-smoke-361220.gun_violence.gun_violence_2014`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2015`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2016`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2017`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured 
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2018`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2019`
+
+--Creating table off above query results.
+
+CREATE TABLE `cellular-smoke-361220.gun_violence.gun_violence_all_2014_2019`
+AS
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+From `cellular-smoke-361220.gun_violence.gun_violence_2014`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2015`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2016`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2017`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured 
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2018`
+UNION ALL
+SELECT Incident_Date, State, City_Or_County, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_2019`
+
+--Incident_Date is not formatted as a Date. Attempting to fix this with PARSE_DATE.
+
+SELECT 
+  Incident_Date,
+  PARSE_DATE("%B %e, %Y", Incident_Date) AS Incident_Date_Fixed
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_2014_2019`
+
+--Creating table with fixed date.
+
+Create Table `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+AS SELECT
+  State, City_Or_County, __Injured, __Killed,
+  PARSE_DATE("%B %e, %Y", Incident_Date) AS Incident_Date_Fixed
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_2014_2019`
+Order BY Incident_Date_Fixed
+
+
+--Exploring nationwide data.
+--Sum of total killed. 
+SELECT SUM(__Killed) as Total_Killed_US
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+--Sum total killed per day.
+SELECT SUM(__Killed) as Total_Killed_Per_Day_US, Incident_Date_Fixed
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY Incident_Date_Fixed
+Order By 2,1
+--Avg Killed per incident.
+SELECT AVG(__Killed) as AVG_Killed_Per_Incident
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+--Avg killed Per Incident Per State 
+SELECT AVG(__Killed) as AVG_Killed_Per_Incident, State
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY State
+--Sum of total injured
+SELECT SUM(__Injured) as Total_Injured_US
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+--Sum total injured per day.
+SELECT SUM(__Injured) as Total_Injured_Per_Day_US, Incident_Date_Fixed
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY Incident_Date_Fixed
+Order By 2,1
+--Avg Injured Per Incident 
+SELECT AVG(__Injured) as AVG_Injured_Per_Incident
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+--Looking at total killed and total injured.
+SELECT Incident_Date_Fixed, SUM(__Killed + __Injured) as Total_Affected_By_Violence,
+FROM    `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY Incident_Date_Fixed
+
+SELECT SUM(__Killed + __Injured) as Total_Affected_By_Violence, State
+FROM`cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY State
+
+--Creating a table off above query results.
+CREATE TABLE `cellular-smoke-361220.gun_violence.total_affected` AS
+SELECT Incident_Date_Fixed, SUM(__Killed + __Injured) as Total_Affected_By_Violence,
+FROM    `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY Incident_Date_Fixed
+--Looking at mass shooting dates with total deaths or injuries greater than 3. 
+SELECT* 
+FROM `cellular-smoke-361220.gun_violence.total_affected`
+Where Total_Affected_By_Violence > 3
+Order By 1
+--Extracting Day Of Week and Month
+SELECT Total_Affected_By_Violence ,Incident_Date_Fixed,
+EXTRACT(DAYOFWEEK FROM Incident_Date_Fixed) AS Day_of_Week,
+EXTRACT(MONTH From Incident_Date_Fixed) as Month,
+EXTRACT(YEAR From Incident_Date_Fixed) as Year
+FROM `cellular-smoke-361220.gun_violence.total_affected`
+ORDER BY Incident_Date_Fixed
+--Create Table showing day of week.
+CREATE Table  `cellular-smoke-361220.gun_violence.dow_gun_violence`
+AS
+SELECT Incident_Date_Fixed, format_date("%A", date(Incident_Date_Fixed))as dow_, __Killed, __Injured
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+
+--Looking at Totals per day of week
+SELECT SUM(__Killed+ __Injured) as Total_Affected_By_Violence, dow_
+FROM `cellular-smoke-361220.gun_violence.dow_gun_violence`
+GROUP BY dow_
+Order BY Total_Affected_By_Violence DESC
+
+--Looking at totals per Month
+SELECT SUM(Total_Affected_By_Violence) as Total_Affected_By_Month,
+EXTRACT(MONTH From Incident_Date_Fixed) as Month
+FROM `cellular-smoke-361220.gun_violence.total_affected`
+Group By Month
+ORDER By SUM(Total_Affected_By_Violence) DESC
+
+--Looking at totals per Year
+SELECT SUM(Total_Affected_By_Violence) as Total_Affected_By_Month,
+EXTRACT(Year From Incident_Date_Fixed) as Year
+FROM `cellular-smoke-361220.gun_violence.total_affected`
+Group By Year
+ORDER By Year
+
+
+--Texas, California, Florida, Illinois have highest death and injury counts. 
+SELECT State, SUM(__Killed) as Total_Killed_By_State, SUM(__Injured) as Total_Injured_By_State
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+GROUP BY State
+Order BY Total_Killed_By_State DESC
+LIMIT 4
+
+
+--Texas Numbers
+SELECT SUM(__Killed) as Total_Killed_Tx, Sum(__Injured) as Total_Injured_Tx
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Texas'
+
+SELECT City_Or_County, SUM(__Killed) as Total_Killed_By_City, SUM(__Injured) as Total_Injured_By_City
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Texas'
+GROUP BY City_Or_County
+Order By Total_Killed_By_City DESC
+
+
+--California Numbers
+SELECT SUM(__Killed) as Total_Killed_Ca, Sum(__Injured) as Total_Injured_Ca
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'California'
+
+SELECT City_Or_County, SUM(__Killed) as Total_Killed_By_City, SUM(__Injured) as Total_Injured_By_City
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'California'
+GROUP BY City_Or_County
+Order By Total_Killed_By_City DESC
+
+--Florida Numbers
+SELECT SUM(__Killed) as Total_Killed_Fl, Sum(__Injured) as Total_Injured_Fl
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Florida'
+
+SELECT City_Or_County, SUM(__Killed) as Total_Killed_By_City, SUM(__Injured) as Total_Injured_By_City
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Florida'
+GROUP BY City_Or_County
+Order By Total_Killed_By_City DESC
+
+--Illinois Numbers
+SELECT SUM(__Killed) as Total_Killed_Il, Sum(__Injured) as Total_Injured_Il
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Illinois'
+
+SELECT City_Or_County, SUM(__Killed) as Total_Killed_By_City, SUM(__Injured) as Total_Injured_By_City
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Illinois'
+GROUP BY City_Or_County
+Order By Total_Killed_By_City DESC
+
+--Tennessee Numbers (out of curiousity)
+SELECT SUM(__Killed) as Total_Killed_Il, Sum(__Injured) as Total_Injured_Il
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Tennessee'
+
+SELECT City_Or_County, SUM(__Killed) as Total_Killed_By_City, SUM(__Injured) as Total_Injured_By_City
+FROM `cellular-smoke-361220.gun_violence.gun_violence_all_fixed_date`
+Where State = 'Tennessee'
+GROUP BY City_Or_County
+Order By Total_Killed_By_City DESC
